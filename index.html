@@ -9,17 +9,16 @@
     </style>
 </head>
 <body>
-<script>
+<script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/loaders/GLTFLoader.js';
 
-// --- シーンとカメラ ---
+// --- シーン・カメラ・レンダラー ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 camera.position.set(0, 20, 30);
-camera.lookAt(0,0,0);
 
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -30,82 +29,64 @@ const light = new THREE.DirectionalLight(0xffffff, 1);
 light.position.set(10,20,10);
 scene.add(light);
 
-// --- GLTF ローダー ---
+// --- モデル読み込み ---
 const loader = new GLTFLoader();
 let map, balloon;
 
-// マップ読み込み
-loader.load('models/map.glb', gltf => {
+// 両方とも GitHub Pages 上の URL に統一
+loader.load('https://kcjsa.github.io/ballon/models/map.glb', gltf => {
     map = gltf.scene;
     scene.add(map);
-});
+}, undefined, e => console.error("Map load error:", e));
 
-// 飛行船読み込み
-loader.load('models/balloon.gltf', gltf => {
+loader.load('https://kcjsa.github.io/ballon/models/balloon.gltf', gltf => {
     balloon = gltf.scene;
-    balloon.position.set(0, 5, 0);
+    balloon.position.set(0,5,0);
     scene.add(balloon);
-});
+}, undefined, e => console.error("Balloon load error:", e));
 
-// --- 衝突判定用 Box3 ---
+// --- 衝突判定 ---
 const balloonBox = new THREE.Box3();
 const mapBox = new THREE.Box3();
 
-// --- タッチ操作用変数 ---
-let touchX = 0;
-let touchY = 0;
-let moveX = 0;
-let moveY = 0;
-
-// --- タッチイベント ---
-window.addEventListener('touchstart', (e) => {
-    const touch = e.touches[0];
-    touchX = touch.clientX;
-    touchY = touch.clientY;
+// --- タッチ操作 ---
+let touchX = 0, touchY = 0, moveX = 0, moveY = 0;
+window.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    touchX = t.clientX; touchY = t.clientY;
+});
+window.addEventListener('touchmove', e => {
+    const t = e.touches[0];
+    moveX = (t.clientX - touchX) * 0.05;
+    moveY = (t.clientY - touchY) * 0.05;
+    touchX = t.clientX; touchY = t.clientY;
 });
 
-window.addEventListener('touchmove', (e) => {
-    const touch = e.touches[0];
-    moveX = (touch.clientX - touchX) * 0.05; // 移動量調整
-    moveY = (touch.clientY - touchY) * 0.05;
-    touchX = touch.clientX;
-    touchY = touch.clientY;
-});
-
-// --- アニメーションループ ---
+// --- アニメーション ---
 function animate() {
     requestAnimationFrame(animate);
-
-    if(balloon && map) {
-        // 前進
+    if(balloon && map){
         balloon.position.z -= 0.2;
-
-        // タッチによる移動
         balloon.position.x += moveX;
-        balloon.position.y -= moveY; // 上下反転を考慮
-        moveX = 0;
-        moveY = 0;
+        balloon.position.y -= moveY;
+        moveX = moveY = 0;
 
-        // 衝突判定
         balloonBox.setFromObject(balloon);
         mapBox.setFromObject(map);
-        if(balloonBox.intersectsBox(mapBox)) {
+        if(balloonBox.intersectsBox(mapBox)){
             console.log("Game Over!");
-            // ここで飛行停止やリトライ処理を追加可能
         }
 
-        // カメラ追従
         camera.position.x = balloon.position.x;
         camera.position.y = balloon.position.y + 10;
         camera.position.z = balloon.position.z + 20;
         camera.lookAt(balloon.position);
     }
-
     renderer.render(scene, camera);
 }
 animate();
 
-// --- ウィンドウリサイズ対応 ---
+// --- リサイズ対応 ---
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
