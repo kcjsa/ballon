@@ -34,16 +34,24 @@ const loader = new GLTFLoader();
 let map, balloon;
 
 // 両方とも GitHub Pages 上の URL に統一
-loader.load('https://kcjsa.github.io/ballon/models/map.glb', gltf => {
-    map = gltf.scene;
-    scene.add(map);
-}, undefined, e => console.error("Map load error:", e));
+loader.load(
+  'https://raw.githubusercontent.com/kcjsa/ballon/main/models/map.glb',
+  gltf => { scene.add(gltf.scene); },
+  undefined,
+  e => console.error("Map load error:", e)
+);
 
-loader.load('https://kcjsa.github.io/ballon/models/balloon.gltf', gltf => {
+loader.load(
+  'https://raw.githubusercontent.com/kcjsa/ballon/main/models/balloon.gltf',
+  gltf => {
     balloon = gltf.scene;
     balloon.position.set(0,5,0);
     scene.add(balloon);
-}, undefined, e => console.error("Balloon load error:", e));
+  },
+  undefined,
+  e => console.error("Balloon load error:", e)
+);
+
 
 // --- 衝突判定 ---
 const balloonBox = new THREE.Box3();
